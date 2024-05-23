@@ -123,3 +123,41 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+abstract class TodoEvent {
+  const TodoEvent();
+
+  @override
+  List<Object> get props => [];
+}
+
+class LoadTodos extends TodoEvent {}
+
+// States
+abstract class TodoState  {
+  const TodoState();
+
+  @override
+  List<Object> get props => [];
+}
+
+class TodoLoading extends TodoState {}
+
+class TodoLoaded extends TodoState {
+  final List<Todo> todos;
+
+  const TodoLoaded(this.todos);
+
+  @override
+  List<Object> get props => [todos];
+}
+
+class TodoError extends TodoState {}
+
+// Model
+class Todo {
+  final String title;
+
+  Todo({
+    required this.title,
+  });
+}
