@@ -4,14 +4,11 @@ class ArticleEntity {
   final String? url;
   final String? urlToImage;
   final String? publishedAt;
-  final String? content;
 
-  ArticleEntity({
-     this.title,
-     this.description,
-     this.url,
-     this.urlToImage,
-     this.publishedAt,
-     this.content,
-  });
+  ArticleEntity(
+      { this.title,
+       this.description,
+       this.url,
+       this.urlToImage,
+       this.publishedAt});
 }

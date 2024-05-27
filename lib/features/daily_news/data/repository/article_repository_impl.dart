@@ -1,33 +1,34 @@
-import 'dart:io';
-
 import 'package:clean_arch/core/constants.dart';
-import 'package:clean_arch/core/data/data_helper/data_state.dart';
-import 'package:clean_arch/core/data/data_source/remote/web_service.dart';
-import 'package:clean_arch/features/daily_news/domain/entity/article_entity.dart';
+import 'package:clean_arch/core/networking/api_error_handler.dart';
+import 'package:clean_arch/core/networking/api_result.dart';
+import 'package:clean_arch/core/web_service/web_service.dart';
+import 'package:clean_arch/features/daily_news/data/model/article_model.dart';
 import 'package:clean_arch/features/daily_news/domain/repository/article_repository.dart';
-import 'package:dio/dio.dart';
-
+import 'package:retrofit/dio.dart';
 class ArticleRepositoryImpl implements ArticleRepository {
   final WebService webService;
-  ArticleRepositoryImpl(this.webService);
+
+  ArticleRepositoryImpl({required this.webService});
+
   @override
-  Future<DataState<List<ArticleEntity>>> getArticles() async {
+  Future<ApiResult<List<ArticleModel>>> getArticles() async {
     try {
-      final httpResopnse = await webService.getPopularMovies(
+      HttpResponse httpResponse = await webService.getArticles(
           apiKey: Constants.newsAPIKey,
           category: Constants.categoryQuery,
           country: Constants.countryQuery);
-      if (httpResopnse.response.statusCode == HttpStatus.ok) {
-        return DataState(data: httpResopnse.data);
+
+      if (httpResponse.response.statusCode == 200) {
+        // Assume the response.data is already a Map<String, dynamic>
+        var data = httpResponse.data as Map<String, dynamic>;
+        var articles = data['articles'] as List<dynamic>;
+        var articleModels = articles.map((json) => ArticleModel.fromJson(json as Map<String, dynamic>)).toList();
+        return ApiResult.success(articleModels);
       } else {
-        return DataFailed(DioException(
-            error: httpResopnse.response.statusMessage,
-            response: httpResopnse.response,
-            type: DioExceptionType.unknown,
-            requestOptions: httpResopnse.response.requestOptions));
+        return ApiResult.failure(ErrorHandler.handle(httpResponse.response.statusMessage));
       }
-    } on DioException catch (e) {
-      return DataFailed(e);
+    } catch (e) {
+      return ApiResult.failure(ErrorHandler.handle(e));
     }
   }
 }
