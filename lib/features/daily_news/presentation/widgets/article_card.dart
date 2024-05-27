@@ -1,13 +1,12 @@
+import 'package:clean_arch/config/database/cache/cache_helper.dart';
 import 'package:clean_arch/core/constants.dart';
+import 'package:clean_arch/core/injection/dependency_injection.dart';
 import 'package:clean_arch/features/daily_news/data/model/article_model.dart';
+import 'package:clean_arch/features/daily_news/presentation/widgets/article_sheet_content.dart';
 import 'package:flutter/material.dart';
 
-
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';  // Add this for date formatting.
-
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Add this for date formatting.
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ArticleCard extends StatelessWidget {
   const ArticleCard({super.key, required this.model});
@@ -25,23 +24,44 @@ class ArticleCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-              child: FadeInImage.assetNetwork(
-                placeholder: Constants.kLoadingGiff,
-                image: model.urlToImage ?? Constants.kDefaultImage,
-                fit: BoxFit.cover,
-                height: 200,
-                width: double.infinity,
-                imageErrorBuilder: (context, error, stackTrace) {
-                  return Image.asset(
-                    Constants.kDefaultImage,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(10)),
+                  child: FadeInImage.assetNetwork(
+                    placeholder: Constants.kLoadingGiff,
+                    image: model.urlToImage ?? Constants.kDefaultImage,
                     fit: BoxFit.cover,
                     height: 200,
                     width: double.infinity,
-                  );
-                },
-              ),
+                    imageErrorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        Constants.kDefaultImage,
+                        fit: BoxFit.cover,
+                        height: 200,
+                        width: double.infinity,
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  height: 50,
+                  width: 50,
+                  margin: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      addArticleToCache(model, context);
+                    },
+                    icon: Icon(Icons.book),
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.all(10.0),
@@ -50,7 +70,7 @@ class ArticleCard extends StatelessWidget {
                 children: [
                   Text(
                     model.title ?? "",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       color: Colors.black87,
@@ -59,7 +79,7 @@ class ArticleCard extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     model.description ?? "",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black54,
                     ),
@@ -71,15 +91,15 @@ class ArticleCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _formatDate(model.publishedAt??""),
-                        style: TextStyle(
+                        _formatDate(model.publishedAt ?? ""),
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.black45,
                         ),
                       ),
                       TextButton(
                         onPressed: () {
-                          // Navigate to the full article
+                          openArticle(context, model);
                         },
                         child: Text(
                           "Read More",
@@ -102,10 +122,50 @@ class ArticleCard extends StatelessWidget {
   String _formatDate(String date) {
     try {
       final DateTime dateTime = DateTime.parse(date);
-    return DateFormat.yMMMMd().format(dateTime);
+      return DateFormat.yMMMMd().format(dateTime);
     } catch (e) {
       return "";
     }
   }
-}
 
+  void openArticle(BuildContext context, ArticleModel model) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return ArticleContentSheet(model: model);
+      },
+    );
+  }
+
+  addArticleToCache(ArticleModel model, BuildContext context) async {
+    try {
+      bool isKeyExist = await getIt<CacheFactory>().storeArticle(model);
+      if (isKeyExist) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Article already saved"),
+          ),
+        );
+        return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Article saved successfully"),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("could not save article"),
+        ),
+      );
+    }
+  }
+}
